@@ -3,22 +3,22 @@ Squiggly vision module
 """
 
 from PIL import Image, ImageFilter
-from skimage import io
+from skimage import io, transform
 from skimage import color as skcolor
 import numpy as np
 
 NO_BLOB = -1
-BITS_PER_CHANNEL = 8
 COLORS_TO_DETECT = {
     'R': (255, 0, 0),
     'G': (0, 255, 0),
     'B': (0, 0, 255)
 }
 DESIRED_WIDTH = 1000
-FILTER_SIZE = 7
-BLUE_TO_ADD = 70
-LAB_THRESHOLD = 70
-
+LAB_THRESH = {
+    'red': 50,
+    'blue': 80,
+    'green': 50
+}
 LAB_COLORS = {
     'red': [48.10022646, 71.47352807, 39.7632324],
     'green': [47.72064798, -31.10112263, 19.58122412],
@@ -30,23 +30,13 @@ LAB_COLORS = {
 
 def get_image_data(filename):
     rgb = io.imread(filename)
+    if rgb.shape[0] > DESIRED_WIDTH:
+        height = int(
+            DESIRED_WIDTH * (rgb.shape[1]/float(rgb.shape[0]))
+        )
+        rgb = transform.resize(rgb, (DESIRED_WIDTH, height))
     lab = skcolor.rgb2lab(rgb)
-
     return lab
-
-
-def get_blurred_data(filename):
-    pil_image = get_pillow_image(get_image_data(filename))
-    blurred = pil_image.filter(
-        ImageFilter.MedianFilter(FILTER_SIZE)
-    )
-    even_more_blurred = blurred.filter(
-        ImageFilter.GaussianBlur(FILTER_SIZE)
-    )
-    return {
-        'size': even_more_blurred.size,
-        'data': list(even_more_blurred.getdata())
-    }
 
 
 # image is a {size: (w, h), data: [...]} type of thing
@@ -56,61 +46,29 @@ def get_pillow_image(image):
     return pillow_image
 
 
-def posterize(image, bits_to_preserve):
-    bits_to_remove = BITS_PER_CHANNEL - bits_to_preserve
-    new_data = map(
-        lambda color: posterize_color(color, bits_to_remove),
-        image['data']
-    )
-    return {
-        'size': image['size'],
-        'data': new_data
-    }
-
-
-def add_color_to_pixels(image, color_to_add):
-    new_data = map(
-        lambda color: (
-            color[0] + color_to_add[0],
-            color[1] + color_to_add[1],
-            color[2] + color_to_add[2]
-        ),
-        image['data']
-    )
-    return {
-        'size': image['size'],
-        'data': new_data
-    }
-
-
-# keeps colors that are basically RGB and set others to black
+# mutates a LAB image into perfect rgb
 def rgbify(image):
-    new_data = []
-    for color in image['data']:
-        if color_is_extreme(color):
-            max_color = [0, 0, 0]
-            max_color[get_max_channel(color)] = 255
-            new_data.append(tuple(max_color))
-        else:
-            new_data.append((0, 0, 0))
+    def dist(a, b):
+        return (
+            (a[0]-b[0])**2 +
+            (a[1]-b[1])**2 +
+            (a[2]-b[2])**2
+        ) ** 0.5
 
-    return {
-        'size': image['size'],
-        'data': new_data
-    }
-
-
-def posterize_color(color, bits):
-    # map doesn't work on tuples
-    return (
-        posterize_channel(color[0], bits),
-        posterize_channel(color[1], bits),
-        posterize_channel(color[2], bits),
-    )
-
-
-def posterize_channel(value, bits):
-    return (value >> bits) << bits
+    data = []
+    for i in range(image.shape[0]):
+        data.append([])
+        for j in range(image.shape[1]):
+            c = image[i][j]
+            if dist(c, LAB_COLORS['red']) < LAB_THRESH['red']:
+                data[i].append([255, 0, 0])
+            elif dist(c, LAB_COLORS['green']) < LAB_THRESH['green']:
+                data[i].append([0, 255, 0])
+            elif dist(c, LAB_COLORS['blue']) < LAB_THRESH['blue']:
+                data[i].append([0, 0, 255])
+            else:
+                data[i].append([0, 0, 0])
+    return np.array(data, dtype=np.uint8)
 
 
 '''
@@ -250,29 +208,9 @@ def get_block_ids_and_origins(mask_blobs, color_id_blobs):
 
 
 def process(filename):
-    # image = get_blurred_data(filename)
-    # rgbed = get_pillow_image(
-    #     rgbify(posterize(
-    #         image, 1
-    #     ))
-    # )
-    # rgbed.save('rgbed.png')
+    # load the image, resized and in LAB space
     image = get_image_data(filename)
-    print(image.shape)
 
-    def dist(a, b):
-        return (
-            (a[0]-b[0])**2 +
-            (a[1]-b[1])**2 +
-            (a[2]-b[2])**2
-        ) ** 0.5
-
-    shape = image.shape
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            color = image[i][j]
-            if dist(color, LAB_COLORS['blue']) > LAB_THRESHOLD:
-                image[i][j] = np.array(LAB_COLORS['black'])
-            else:
-    ugh = skcolor.lab2rgb(image)
-    io.imsave('sexy.png', ugh)
+    # rgbify all of the colors
+    rgbed = rgbify(image)
+    io.imsave('yaya.png', rgbed)
