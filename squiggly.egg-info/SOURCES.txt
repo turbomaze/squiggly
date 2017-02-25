@@ -1,7 +1,0 @@
-squiggly/__init__.py
-squiggly/views.py
-squiggly.egg-info/PKG-INFO
-squiggly.egg-info/SOURCES.txt
-squiggly.egg-info/dependency_links.txt
-squiggly.egg-info/requires.txt
-squiggly.egg-info/top_level.txt

@@ -1,3 +1,4 @@
 instance/config.py
 *.pyc
 */*.pyc
+/squiggly.egg-info

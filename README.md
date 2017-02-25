@@ -3,6 +3,19 @@ Squiggly
 
 Squiggly the turtle! A physical programming language for teaching kids programming. Made at MakeMIT 2017.
 
+## Setup
+Export the following environment variables before running the Flask server:
+```
+export FLASK_APP=squiggly
+export FLASK_DEBUG=true
+```
+
+Then run:
+```
+pip install -e
+flask run
+```
+
 ## Block design
 
 Since the Squiggly language is processed visually, the components of the languuage, the blocks, have additional features beyond the cute shapes the users see. Here is a list of all of the different types of blocks Squiggy uses and how they are designed.
