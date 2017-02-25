@@ -3,6 +3,9 @@ Squiggly vision module
 """
 
 from PIL import Image, ImageFilter
+from skimage import io
+from skimage import color as skcolor
+import numpy as np
 
 NO_BLOB = -1
 BITS_PER_CHANNEL = 8
@@ -13,20 +16,23 @@ COLORS_TO_DETECT = {
 }
 DESIRED_WIDTH = 1000
 FILTER_SIZE = 7
-EXTREME_THRESHOLD = 30
 BLUE_TO_ADD = 70
+LAB_THRESHOLD = 70
+
+LAB_COLORS = {
+    'red': [53.24058794, 80.09230823, 67.20275104],
+    'green': [87.73509949, -86.18302974, 83.17970318],
+    'blue': [32.29567257, 79.18559091, -107.85730021],
+    'black': [0., 0., 0.],
+    'white': [1.00000000e+02, -2.45493786e-03, 4.65342115e-03]
+}
 
 
 def get_image_data(filename):
-    image = Image.open(filename)
-    height = int(DESIRED_WIDTH * (
-        image.size[1]/float(image.size[0]))
-    )
-    smaller = image.resize((DESIRED_WIDTH, height))
-    return {
-        'size': smaller.size,
-        'data': list(smaller.getdata())
-    }
+    rgb = io.imread(filename)
+    lab = skcolor.rgb2lab(rgb)
+
+    return lab
 
 
 def get_blurred_data(filename):
@@ -92,21 +98,6 @@ def rgbify(image):
         'size': image['size'],
         'data': new_data
     }
-
-def color_is_extreme(color):
-    max_color = max(color)
-    second_color = sum(color) - max_color - min(color)
-    return (max_color - second_color) > EXTREME_THRESHOLD
-
-
-def get_max_channel(color):
-    biggest_channel_value = -1
-    max_channel = -1
-    for i, channel in enumerate(color):
-        if channel > biggest_channel_value:
-            max_channel = i
-            biggest_channel_value = channel
-    return max_channel
 
 
 def posterize_color(color, bits):
@@ -259,10 +250,29 @@ def get_block_ids_and_origins(mask_blobs, color_id_blobs):
 
 
 def process(filename):
-    image = get_blurred_data(filename)
-    rgbed = get_pillow_image(
-        rgbify(posterize(
-            image, 1
-        ))
-    )
-    rgbed.save('rgbed.png')
+    # image = get_blurred_data(filename)
+    # rgbed = get_pillow_image(
+    #     rgbify(posterize(
+    #         image, 1
+    #     ))
+    # )
+    # rgbed.save('rgbed.png')
+    image = get_image_data(filename)
+    print(image.shape)
+
+    def dist(a, b):
+        return (
+            (a[0]-b[0])**2 +
+            (a[1]-b[1])**2 +
+            (a[2]-b[2])**2
+        ) ** 0.5
+
+    shape = image.shape
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            color = image[i][j]
+            if dist(color, LAB_COLORS['blue']) > LAB_THRESHOLD:
+                image[i][j] = np.array(LAB_COLORS['black'])
+            else:
+    ugh = skcolor.lab2rgb(image)
+    io.imsave('sexy.png', ugh)
