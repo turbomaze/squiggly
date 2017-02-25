@@ -86,8 +86,8 @@ def get_block_ids_and_origins(mask_blobs, color_id_blobs):
 
             # If the center of the color id blob is in the mask blob,
             # store the information in a list, color_blobs_in_mask_blob
-            if centroid in mask_blob:
-                a.append({
+            if centroid in mask_blob['points']:
+                color_blobs_in_mask_blob.append({
                     'type': color_id_blob['type'],
                     'center': centroid
                 })
@@ -101,28 +101,32 @@ def get_block_ids_and_origins(mask_blobs, color_id_blobs):
 
         # Adding to a list of blocks the id and origin of the block
         blocks.append({
-            'id': blob_id,
+            'id': block_id,
             'origin': get_blob_centroid(mask_blob)
         })
 
     return blocks
 
+# TESTS
+# mask_blobs = [{
+#     'type': 'BLACK',
+#     'points': Set([(0,0), (1,0), (2,0), (3,0), (0,1), (1,1), (2,1)])
+# }]
+# color_id_blobs = []
+# color_id_blobs.append({
+#     'type': 'R',
+#     'points': Set([(0,1), (1,1), (1,0)])
+# })
+# color_id_blobs.append({
+#     'type': 'G',
+#     'points': Set([(0,0)])
+# })
+# color_id_blobs.append({
+#     'type': 'B',
+#     'points': Set([(2,1), (2,0), (3,0)])
+# })
 
-mask_blobs = {
-    'type': 'BLACK',
-    'points': Set([(0,0), (1,0), (2,0), (3,0), (0,1), (1,1), (2,1)])
-}
-color_id_blobs = []
-color_id_blobs.append({
-    'type': 'R',
-    'points': Set([(0,1), (1,1), (1,0), (2,0)])
-})
-color_id_blobs.append({
-    'type': 'G',
-    'points': Set([(0,0)])
-})
-
-blocks = get_block_ids_and_origins(mask_blobs, color_id_blobs)
-print blocks
+# blocks = get_block_ids_and_origins(mask_blobs, color_id_blobs)
+# print blocks
 
 
