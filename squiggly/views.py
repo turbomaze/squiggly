@@ -55,4 +55,4 @@ def uploaded_file(filename):
 
 
 def process_image(filename):
-    return vision.foobar(filename)
+    return vision.process(filename)

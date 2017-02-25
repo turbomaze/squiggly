@@ -2,17 +2,44 @@
 Squiggly vision module
 """
 
-from PIL import Image
-from sets import Set
+from PIL import Image, ImageFilter
 
+NO_BLOB = -1
 BITS_PER_CHANNEL = 8
+COLORS_TO_DETECT = {
+    'R': (255, 0, 0),
+    'G': (0, 255, 0),
+    'B': (0, 0, 255)
+}
+DESIRED_WIDTH = 1000
+FILTER_SIZE = 7
+EXTREME_THRESHOLD = 30
+BLUE_TO_ADD = 70
 
 
 def get_image_data(filename):
     image = Image.open(filename)
+    height = int(DESIRED_WIDTH * (
+        image.size[1]/float(image.size[0]))
+    )
+    smaller = image.resize((DESIRED_WIDTH, height))
     return {
-        'size': image.size,
-        'data': list(image.getdata())
+        'size': smaller.size,
+        'data': list(smaller.getdata())
+    }
+
+
+def get_blurred_data(filename):
+    pil_image = get_pillow_image(get_image_data(filename))
+    blurred = pil_image.filter(
+        ImageFilter.MedianFilter(FILTER_SIZE)
+    )
+    even_more_blurred = blurred.filter(
+        ImageFilter.GaussianBlur(FILTER_SIZE)
+    )
+    return {
+        'size': even_more_blurred.size,
+        'data': list(even_more_blurred.getdata())
     }
 
 
@@ -35,6 +62,53 @@ def posterize(image, bits_to_preserve):
     }
 
 
+def add_color_to_pixels(image, color_to_add):
+    new_data = map(
+        lambda color: (
+            color[0] + color_to_add[0],
+            color[1] + color_to_add[1],
+            color[2] + color_to_add[2]
+        ),
+        image['data']
+    )
+    return {
+        'size': image['size'],
+        'data': new_data
+    }
+
+
+# keeps colors that are basically RGB and set others to black
+def rgbify(image):
+    new_data = []
+    for color in image['data']:
+        if color_is_extreme(color):
+            max_color = [0, 0, 0]
+            max_color[get_max_channel(color)] = 255
+            new_data.append(tuple(max_color))
+        else:
+            new_data.append((0, 0, 0))
+
+    return {
+        'size': image['size'],
+        'data': new_data
+    }
+
+def color_is_extreme(color):
+    max_color = max(color)
+    second_color = sum(color) - max_color - min(color)
+    return (max_color - second_color) > EXTREME_THRESHOLD
+
+
+def get_max_channel(color):
+    biggest_channel_value = -1
+    max_channel = -1
+    for i, channel in enumerate(color):
+        if channel > biggest_channel_value:
+            max_channel = i
+            biggest_channel_value = channel
+    return max_channel
+
+
 def posterize_color(color, bits):
     # map doesn't work on tuples
     return (
@@ -48,19 +122,95 @@ def posterize_channel(value, bits):
     return (value >> bits) << bits
 
 
-def foobar(filename):
-    image = get_image_data(filename)
-    posterized = get_pillow_image(posterize(image, 1))
-    posterized.save('swag.png')
+'''
+Detects blobs of a given color in an image.
 
+@param image Image of the form {'size': ..., 'data': [...]}
+@param blob_color the color to blob in the image, a 3-tuple
+       of RGB values
+@return a list of blobs, each of which is a set of (x, y)
+        points that occur in the blob
+'''
+def detect_blobs(image, blob_color):
+    width, height = image['size']
+
+    # get location information of the pixels
+    all_pixels = map(
+        lambda (i, color): (color, i % width, i / width),
+        enumerate(image['data'])
+    )
+
+    # only keep pixels that are the blob color
+    relevant_pixels = filter(
+        lambda pixel: pixel[0] == blob_color,
+        all_pixels
+    )
+
+    # keep track of where each pixel in all_pixels went to
+    pixel_dict = {}
+    for i, pixel in enumerate(relevant_pixels):
+        idx = width * pixel[2] + pixel[1]
+        pixel_dict[idx] = i
+
+    # the initial blob ids of each pixel
+    blob_ids = [NO_BLOB] * len(relevant_pixels)
+
+    current_id = NO_BLOB + 1  # next number
+
+    for i in range(len(relevant_pixels)):
+        # if the pixel is already in a blob, skip it
+        if blob_ids[i] != NO_BLOB:
+            continue
+
+        blob_ids[i] = current_id
+
+        q = [i]
+        while len(q) > 0:
+            current = q.pop(0)
+            _, x, y = relevant_pixels[current]
+            change_queue = []
+            if x + 1 < width:
+                el = y * width + x + 1
+                change_queue.append(el)
+            if x - 1 >= 0:
+                el = y * width + x - 1
+                change_queue.append(el)
+            if y - 1 >= 0:
+                el = (y - 1) * width + x
+                change_queue.append(el)
+            if y + 1 < height:
+                el = (y + 1) * width + x
+                change_queue.append(el)
+
+            for change_idx in change_queue:
+                if change_idx in pixel_dict:
+                    # location is idx in relevant_pixels
+                    location = pixel_dict[change_idx]
+                    if blob_ids[location] == NO_BLOB:
+                        blob_ids[location] = current_id
+                        q.append(location)
+
+        current_id += 1
+
+    blobs = {}
+    print blob_ids
+    for i, blob_id in enumerate(blob_ids):
+        if blob_id not in blobs:
+            blobs[blob_id] = set()
+
+        _, x, y = relevant_pixels[i]
+        blobs[blob_id].add((x, y))
+
+    blob_sets = blobs.values()
+    return blob_sets
 
 '''
 Gets the centroid of a blob.
 
-@param  blob --  dictionary object with keys 'type' that maps to a string 
-                representing the blob's color and 'points' that maps to 
+@param  blob --  dictionary object with keys 'type' that maps to a string
+                representing the blob's color and 'points' that maps to
                 a set of tuples (x,y)
-@return x,y coordinates of center of the blob as a tuple 
+@return x,y coordinates of center of the blob as a tuple
 '''
 def get_blob_centroid(blob):
     x_coords = [float(pt[0]) for pt in blob['points']]
@@ -107,26 +257,12 @@ def get_block_ids_and_origins(mask_blobs, color_id_blobs):
 
     return blocks
 
-# TESTS
-# mask_blobs = [{
-#     'type': 'BLACK',
-#     'points': Set([(0,0), (1,0), (2,0), (3,0), (0,1), (1,1), (2,1)])
-# }]
-# color_id_blobs = []
-# color_id_blobs.append({
-#     'type': 'R',
-#     'points': Set([(0,1), (1,1), (1,0)])
-# })
-# color_id_blobs.append({
-#     'type': 'G',
-#     'points': Set([(0,0)])
-# })
-# color_id_blobs.append({
-#     'type': 'B',
-#     'points': Set([(2,1), (2,0), (3,0)])
-# })
 
-# blocks = get_block_ids_and_origins(mask_blobs, color_id_blobs)
-# print blocks
-
-
+def process(filename):
+    image = get_blurred_data(filename)
+    rgbed = get_pillow_image(
+        rgbify(posterize(
+            image, 1
+        ))
+    )
+    rgbed.save('rgbed.png')
