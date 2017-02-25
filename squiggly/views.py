@@ -2,6 +2,7 @@ import os
 from squiggly import app
 from flask import Flask, request, redirect, render_template, send_from_directory, url_for
 from werkzeug.utils import secure_filename
+from vision import core as vision
 
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(APP_ROOT, 'static/uploads')
@@ -41,5 +42,6 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'],
                                filename)
 
-def vision(file):
-    return file.filename
+
+def process_image(file):
+    return vision.foobar(file)

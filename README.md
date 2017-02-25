@@ -16,6 +16,8 @@ pip install -e .
 flask run
 ```
 
+The variable exports and final `flask run` command are in the `start_server.sh` script for convenience. Make sure you `pip install -e .` the first time.
+
 ## Block design
 
 Since the Squiggly language is processed visually, the components of the languuage, the blocks, have additional features beyond the cute shapes the users see. Here is a list of all of the different types of blocks Squiggy uses and how they are designed.
