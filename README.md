@@ -12,7 +12,7 @@ export FLASK_DEBUG=true
 
 Then run:
 ```
-pip install -e
+pip install -e .
 flask run
 ```
 
