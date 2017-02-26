@@ -37,7 +37,7 @@ def compile(blocks):
 
 # organize the blocks in lines
 def lineate(blocks):
-    return blocks
+    return []
 
 
 # parse lines into an AST
@@ -177,7 +177,6 @@ def parse_turn(tokens, ast, remaining):
             'arguments': [default_values[keywords['turn']]]
         }
         for leftover in t:
-            print 'hehe', leftover
             remaining.append(leftover)
         return True
     else:
@@ -211,4 +210,34 @@ def parse_eat(tokens, ast, remaining):
 # simulate the lines to get an explicit list of commands
 def simulate(ast):
     commands = []
+    state = {}
+    simulate_helper(ast, state, commands)
     return commands
+
+
+def simulate_helper(ast, state, out):
+    if ast['type'] == 'function':
+        if ast['info']['name'] == 'forward':
+            amount = ast['info']['arguments'][0]
+            out.append((keywords['forward'], amount))
+        elif ast['info']['name'] == 'turn':
+            amount = ast['info']['arguments'][0]
+            out.append((keywords['turn'], amount))
+        elif ast['info']['name'] == 'eat':
+            var = ast['info']['arguments'][0]
+            var_name = var['info']['name']
+            amount = ast['info']['arguments'][1]
+            if 'variables' in state:
+                state['variables'][var_name] -= amount
+    elif ast['type'] == 'list':
+        for sub_ast in ast['info']['body']:
+            simulate_helper(sub_ast, state, out)
+    elif ast['type'] == 'for':
+        var_ast = ast['info']['variable']
+        var_name = var_ast['info']['name']
+        if 'variables' not in state:
+            state['variables'] = {}
+        state['variables'][var_name] = var_ast['info']['value']
+        body_ast = ast['info']['body']
+        while state['variables'][var_name] > 0:
+            simulate_helper(body_ast, state, out)

@@ -8,7 +8,7 @@ from skimage import color as skcolor
 import numpy as np
 
 NO_BLOB = -1
-MIN_BLOB_SIZE = 50
+MIN_BLOB_SIZE = 200
 COLORS_TO_DETECT = {
     'R': [255, 0, 0],
     'G': [0, 255, 0],
@@ -39,7 +39,10 @@ def get_image_data(filename):
         )
         rgb = transform.resize(rgb, (DESIRED_WIDTH, height))
     lab = skcolor.rgb2lab(rgb)
-    return transform.rotate(lab, -90.0)
+    if rgb.shape[0] > rgb.shape[1]:
+        return transform.rotate(lab, -90.0)
+    else:
+        return lab
 
 
 # image is a {size: (w, h), data: [...]} type of thing
@@ -245,10 +248,11 @@ def get_block_ids_and_origins(mask_blobs, color_id_blobs):
             block_id += blob['type']
 
         # Adding to a list of blocks the id and origin of the block
-        blocks.append({
-            'id': block_id,
-            'origin': get_blob_centroid(mask_blob)
-        })
+        if block_id != '':
+            blocks.append({
+                'id': block_id,
+                'origin': get_blob_centroid(mask_blob)
+            })
 
     return blocks
 
