@@ -3,7 +3,7 @@ Squiggly vision module
 """
 
 from PIL import Image, ImageFilter
-from skimage import io, transform
+from skimage import io, transform, morphology
 from skimage import color as skcolor
 import numpy as np
 
@@ -13,11 +13,11 @@ COLORS_TO_DETECT = {
     'G': (0, 255, 0),
     'B': (0, 0, 255)
 }
-DESIRED_WIDTH = 1000
+DESIRED_WIDTH = 500
 LAB_THRESH = {
-    'red': 50,
-    'blue': 80,
-    'green': 50
+    'red': 40,
+    'blue': 30,
+    'green': 21
 }
 LAB_COLORS = {
     'red': [48.10022646, 71.47352807, 39.7632324],
@@ -69,6 +69,46 @@ def rgbify(image):
             else:
                 data[i].append([0, 0, 0])
     return np.array(data, dtype=np.uint8)
+
+
+# returns image of True/False (white/black)
+def blackandwhited(image):
+    bw = []
+    for i in range(image.shape[0]):
+        bw.append([])
+        for j in range(image.shape[1]):
+            smallest = min(image[i][j])
+            biggest = max(image[i][j])
+            median = sum(image[i][j]) - biggest - smallest
+            if smallest == 0 and median == 0 and biggest == 255:
+                bw[i].append(True)
+            else:
+                bw[i].append(False)
+    return np.array(bw)
+
+
+def bw_to_rgb(image):
+    rgb = []
+    for i in range(image.shape[0]):
+        rgb.append([])
+        for j in range(image.shape[1]):
+            if image[i][j]:
+                rgb[i].append([255, 255, 255])
+            else:
+                rgb[i].append([0, 0, 0])
+    return np.array(rgb, dtype=np.uint8)
+
+
+def get_mask_from_rgbed(rgbed):
+    bwed = blackandwhited(rgbed)
+
+    # dilate
+    dilated = morphology.binary_dilation(
+        morphology.binary_dilation(bwed)
+    )
+    dilated_image = bw_to_rgb(dilated)
+    return dilated_image
+
 
 
 '''
@@ -213,4 +253,13 @@ def process(filename):
 
     # rgbify all of the colors
     rgbed = rgbify(image)
-    io.imsave('yaya.png', rgbed)
+    print 'rgbed'
+
+    # get the mask
+    dilated_image = get_mask_from_rgbed(rgbed)
+    print 'masked'
+
+    # save it
+    io.imsave('rgbed.png', rgbed)
+    io.imsave('dilated.png', dilated_image)
+    print 'done'
