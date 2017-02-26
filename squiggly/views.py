@@ -59,3 +59,5 @@ def process_image(filename):
     blocks = vision.process(filename)
     commands = compiler.compile(blocks)
     print commands
+
+    compiler.test_parser()
