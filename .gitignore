@@ -3,3 +3,4 @@ instance/config.py
 */*.pyc
 /squiggly.egg-info
 /squiggly/static/uploads/*
+*.png

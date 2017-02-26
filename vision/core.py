@@ -28,6 +28,7 @@ LAB_COLORS = {
 }
 
 
+# assumes image at filename is from a phone and rotated
 def get_image_data(filename):
     rgb = io.imread(filename)
     if rgb.shape[0] > DESIRED_WIDTH:
@@ -36,7 +37,7 @@ def get_image_data(filename):
         )
         rgb = transform.resize(rgb, (DESIRED_WIDTH, height))
     lab = skcolor.rgb2lab(rgb)
-    return lab
+    return transform.rotate(lab, -90.0)
 
 
 # image is a {size: (w, h), data: [...]} type of thing
