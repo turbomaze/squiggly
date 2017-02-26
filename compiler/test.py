@@ -117,6 +117,19 @@ def test_compiler():
     print commands
     print
 
+    # test 6: compile a lot of commands
+    lines = [
+        [
+            'FOR', 'CHC',
+            'FWD', 'FWD', 'FWD', 'FWD', 'FWD',
+            'EAT', 'CHC'
+        ]
+    ]
+    print 'TESTING COMPILE FOR LOOP AND MORE'
+    commands = core.simulate(core.parse(lines))
+    print commands
+    print
+
 if __name__ == '__main__':
     # test_parser()
 

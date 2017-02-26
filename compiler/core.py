@@ -2,6 +2,8 @@
 Squiggly compiler module
 """
 
+MAX_NUM_CMDS = 100
+
 keywords = {
     'for': 'FOR',
     'forward': 'FWD',
@@ -246,3 +248,5 @@ def simulate_helper(ast, state, out):
         body_ast = ast['info']['body']
         while state['variables'][var_name] > 0:
             simulate_helper(body_ast, state, out)
+            if len(out) > MAX_NUM_CMDS:
+                return
