@@ -57,8 +57,6 @@ def lineate(blocks):
     y_high = max(y_coords)
     y_span = y_high - y_low
 
-    print "y low and high", y_low, y_high
-
     # the actual block is about 3 * color tiles
     BLOCK_LENGTH = 4 * y_span
 
@@ -69,7 +67,6 @@ def lineate(blocks):
     lines = []
     line = []
     keyword = id_to_keyword[upper_left_block['id']]
-    print keyword
 
     line.append(keyword)
 
@@ -77,15 +74,11 @@ def lineate(blocks):
 
     while (len(queue) > 0):
         next_block = queue.pop(0)
-        print "popped off ", next_block['id']
         next_centroid_y = next_block['origin'][1]
-        print "lower and upper bound", lower_bound, upper_bound, "centroid y", next_centroid_y
         if (next_centroid_y <= upper_bound and next_centroid_y >= lower_bound):
             # block is in the same line
             if (next_block['id'] in id_to_keyword):
-                print "hello"
                 keyword = id_to_keyword[next_block['id']]
-                print keyword
                 line.append(keyword)
         else:
             # block is not in that line,
@@ -93,21 +86,16 @@ def lineate(blocks):
             lines.append(line)
             lower_bound = next_block['origin'][1] - (BLOCK_LENGTH/2.0)
             upper_bound = next_block['origin'][1] + (BLOCK_LENGTH/2.0)
-            print "NEW lower and upper bound", lower_bound, upper_bound
             line = []
             if (next_block['id'] in id_to_keyword):
-                print "hello"
                 keyword = id_to_keyword[next_block['id']]
-                print keyword
                 line.append(keyword)
 
-    print "exited queue"
     # after while loop ends because we emptied queue
     # add the last line to lines if its nonempty
     if len(line) > 0:
         lines.append(line)
 
-    print "lines", lines
     return lines
 
 # parse lines into an AST
