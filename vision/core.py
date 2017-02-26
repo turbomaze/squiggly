@@ -9,15 +9,16 @@ import numpy as np
 
 NO_BLOB = -1
 COLORS_TO_DETECT = {
-    'R': (255, 0, 0),
-    'G': (0, 255, 0),
-    'B': (0, 0, 255)
+    'R': [255, 0, 0],
+    'G': [0, 255, 0],
+    'B': [0, 0, 255]
 }
+MASK_COLOR = [255, 255, 255]
 DESIRED_WIDTH = 500
 LAB_THRESH = {
     'red': 40,
     'blue': 30,
-    'green': 21
+    'green': 30
 }
 LAB_COLORS = {
     'red': [48.10022646, 71.47352807, 39.7632324],
@@ -111,24 +112,23 @@ def get_mask_from_rgbed(rgbed):
     return dilated_image
 
 
-
 '''
 Detects blobs of a given color in an image.
 
-@param image Image of the form {'size': ..., 'data': [...]}
+@param image numpy array image
 @param blob_color the color to blob in the image, a 3-tuple
        of RGB values
 @return a list of blobs, each of which is a set of (x, y)
         points that occur in the blob
 '''
 def detect_blobs(image, blob_color):
-    width, height = image['size']
+    height, width, _ = image.shape
 
     # get location information of the pixels
-    all_pixels = map(
-        lambda (i, color): (color, i % width, i / width),
-        enumerate(image['data'])
-    )
+    all_pixels = []
+    for i in range(height):
+        for j in range(width):
+            all_pixels.append((list(image[i][j]), j, i))
 
     # only keep pixels that are the blob color
     relevant_pixels = filter(
@@ -183,7 +183,6 @@ def detect_blobs(image, blob_color):
         current_id += 1
 
     blobs = {}
-    print blob_ids
     for i, blob_id in enumerate(blob_ids):
         if blob_id not in blobs:
             blobs[blob_id] = set()
@@ -259,6 +258,33 @@ def process(filename):
     # get the mask
     dilated_image = get_mask_from_rgbed(rgbed)
     print 'masked'
+
+    # blobs of all of the RGB colors
+    all_color_blobs = []
+    for color_name in COLORS_TO_DETECT:
+        color = COLORS_TO_DETECT[color_name]
+        # blobs of a single color
+        color_blobs = detect_blobs(rgbed, color)
+        all_color_blobs.extend(map(
+            lambda color_blob: {
+                'type': color_name,
+                'points': color_blob
+            },
+            color_blobs
+        ))
+
+    # blobs of the masks
+    mask_blobs = map(
+        lambda blob: {
+            'type': MASK_COLOR,
+            'points': blob
+        },
+        detect_blobs(dilated_image, MASK_COLOR)
+    )
+
+    # get the block ids
+    info = get_block_ids_and_origins(mask_blobs, all_color_blobs)
+    print info
 
     # save it
     io.imsave('rgbed.png', rgbed)
