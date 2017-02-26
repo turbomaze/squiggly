@@ -251,7 +251,8 @@ def get_block_ids_and_origins(mask_blobs, color_id_blobs):
         if block_id != '':
             blocks.append({
                 'id': block_id,
-                'origin': get_blob_centroid(mask_blob)
+                'origin': get_blob_centroid(mask_blob),
+                'points': mask_blob['points']
             })
 
     return blocks

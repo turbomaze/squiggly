@@ -12,6 +12,7 @@ keywords = {
     'eat': 'EAT',
     'banana': 'BAN'
 }
+
 id_to_keyword = {
     'RBG': keywords['for'],
     'BRB': keywords['forward'],
@@ -36,11 +37,78 @@ def compile(blocks):
     commands = simulate(ast)
     return commands
 
-
 # organize the blocks in lines
+# returns lines (list of list of keywords)
 def lineate(blocks):
-    return []
+    # augment each block object with a score based on 10*y + x
+    for block in blocks:
+        block['score'] = 10 * block['origin'][1] + block['origin'][0]
 
+    # sort the blocks based on score to find the upper
+    blocks.sort(key=lambda x: x['score'])
+    queue = blocks
+
+    # first block is the upper left block
+    upper_left_block = queue.pop(0)
+
+    # find the height of the upperleft block id
+    y_coords = [pt[1] for pt in upper_left_block['points']]
+    y_low = min(y_coords)
+    y_high = max(y_coords)
+    y_span = y_high - y_low
+
+    print "y low and high", y_low, y_high
+
+    # the actual block is about 3 * color tiles
+    BLOCK_LENGTH = 4 * y_span
+
+    # rough estimates of lower and upper bounds to check for other blocks in the same line
+    lower_bound = upper_left_block['origin'][1] - (BLOCK_LENGTH/2.0)
+    upper_bound = upper_left_block['origin'][1] + (BLOCK_LENGTH/2.0)
+
+    lines = []
+    line = []
+    keyword = id_to_keyword[upper_left_block['id']]
+    print keyword
+
+    line.append(keyword)
+
+    # go through each block and check if its y_max and y_min are within the bounds
+
+    while (len(queue) > 0):
+        next_block = queue.pop(0)
+        print "popped off ", next_block['id']
+        next_centroid_y = next_block['origin'][1]
+        print "lower and upper bound", lower_bound, upper_bound, "centroid y", next_centroid_y
+        if (next_centroid_y <= upper_bound and next_centroid_y >= lower_bound):
+            # block is in the same line
+            if (next_block['id'] in id_to_keyword):
+                print "hello"
+                keyword = id_to_keyword[next_block['id']]
+                print keyword
+                line.append(keyword)
+        else:
+            # block is not in that line,
+            # append line to lines list and start a new line
+            lines.append(line)
+            lower_bound = next_block['origin'][1] - (BLOCK_LENGTH/2.0)
+            upper_bound = next_block['origin'][1] + (BLOCK_LENGTH/2.0)
+            print "NEW lower and upper bound", lower_bound, upper_bound
+            line = []
+            if (next_block['id'] in id_to_keyword):
+                print "hello"
+                keyword = id_to_keyword[next_block['id']]
+                print keyword
+                line.append(keyword)
+
+    print "exited queue"
+    # after while loop ends because we emptied queue
+    # add the last line to lines if its nonempty
+    if len(line) > 0:
+        lines.append(line)
+
+    print "lines", lines
+    return lines
 
 # parse lines into an AST
 def parse(lines):
