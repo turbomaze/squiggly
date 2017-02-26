@@ -24,9 +24,9 @@ Since the Squiggly language is processed visually, the components of the languua
 
 ### Block localization
 
-In order to infer the location of the blocks from an image, each component contains a string of small shapes in the top corner of the block. The set of shapes can include circles, triangles, squares, stars, and times symbols. The unique arrangement of these shapes identifies the type of block.
+In order to infer the location of the blocks from an image, each component contains a string of colors in the top corner of the block. The set of colors includes red, green, and blue in triples. The unique arrangement of these colors identifies the type of block.
 
-The computer vision algorithm first detects all of the circles,  and then all of the triangles, so on and so forth, and then, given those positions, it groups nearby shapes on the same block together. This string of shapes provides a very easy way to both localize where the block is and determine what the block does.
+Given the positions of the colors, it groups nearby colors on the same block together. This string of colors provides a very easy way to both localize where the block is and determine what the block does.
 
 ### Language components
 
