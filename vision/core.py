@@ -304,3 +304,5 @@ def process(filename):
     io.imsave('rgbed.png', rgbed)
     io.imsave('dilated.png', dilated_image)
     print 'done'
+
+    return info

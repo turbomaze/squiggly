@@ -3,6 +3,7 @@ from squiggly import app
 from flask import Flask, request, redirect, render_template, send_from_directory, url_for
 from werkzeug.utils import secure_filename
 from vision import core as vision
+from compiler import core as compiler
 import threading
 
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -55,4 +56,6 @@ def uploaded_file(filename):
 
 
 def process_image(filename):
-    return vision.process(filename)
+    blocks = vision.process(filename)
+    commands = compiler.compile(blocks)
+    print commands
