@@ -42,7 +42,12 @@ def lineate(blocks):
 
 # parse lines into an AST
 def parse(lines):
-    return map(parse_line, lines)
+    return {
+        'type': 'list',
+        'info': {
+            'body': map(parse_line, lines)
+        }
+    }
 
 
 # parse a single line
