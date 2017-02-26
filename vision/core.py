@@ -8,6 +8,7 @@ from skimage import color as skcolor
 import numpy as np
 
 NO_BLOB = -1
+MIN_BLOB_SIZE = 50
 COLORS_TO_DETECT = {
     'R': [255, 0, 0],
     'G': [0, 255, 0],
@@ -193,6 +194,11 @@ def detect_blobs(image, blob_color):
     blob_sets = blobs.values()
     return blob_sets
 
+
+def is_tiny_ass_blob(blob):
+    return len(blob) < MIN_BLOB_SIZE
+
+
 '''
 Gets the centroid of a blob.
 
@@ -272,6 +278,10 @@ def process(filename):
             },
             color_blobs
         ))
+    all_color_blobs = filter(
+        lambda blob: not is_tiny_ass_blob(blob['points']),
+        all_color_blobs
+    )
 
     # blobs of the masks
     mask_blobs = map(
@@ -280,6 +290,10 @@ def process(filename):
             'points': blob
         },
         detect_blobs(dilated_image, MASK_COLOR)
+    )
+    mask_blobs = filter(
+        lambda blob: not is_tiny_ass_blob(blob['points']),
+        mask_blobs
     )
 
     # get the block ids
